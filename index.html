@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>micro:bit Program Uploader</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f4f8;
+      color: #2d3748;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      max-width: 540px;
+      width: 100%;
+      padding: 2.5rem 2rem;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .logo svg { width: 48px; height: 48px; }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #1a202c;
+    }
+
+    .subtitle {
+      color: #718096;
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+      line-height: 1.5;
+    }
+
+    .drop-zone {
+      border: 2px dashed #cbd5e0;
+      border-radius: 12px;
+      padding: 2rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+      border-color: #6c63ff;
+      background: #f5f3ff;
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-zone-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+
+    .drop-zone-label {
+      font-size: 0.95rem;
+      color: #4a5568;
+    }
+
+    .drop-zone-label span {
+      color: #6c63ff;
+      font-weight: 600;
+      text-decoration: underline;
+    }
+
+    .file-name {
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+      color: #6c63ff;
+      font-weight: 600;
+      min-height: 1.2em;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    button {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.97rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    button:active { transform: scale(0.98); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    #connectBtn {
+      background: #6c63ff;
+      color: #fff;
+    }
+
+    #connectBtn:hover:not(:disabled) { background: #574fd6; }
+
+    #uploadBtn {
+      background: #38a169;
+      color: #fff;
+    }
+
+    #uploadBtn:hover:not(:disabled) { background: #2f855a; }
+
+    .progress-wrap {
+      background: #e2e8f0;
+      border-radius: 99px;
+      height: 10px;
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+      display: none;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #6c63ff, #38a169);
+      border-radius: 99px;
+      transition: width 0.2s;
+    }
+
+    .status {
+      font-size: 0.92rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      min-height: 2.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #edf2f7;
+      color: #4a5568;
+    }
+
+    .status.success { background: #f0fff4; color: #276749; }
+    .status.error   { background: #fff5f5; color: #c53030; }
+    .status.info    { background: #ebf8ff; color: #2b6cb0; }
+    .status.warning { background: #fffaf0; color: #c05621; }
+
+    .note {
+      margin-top: 1.5rem;
+      font-size: 0.83rem;
+      color: #a0aec0;
+      line-height: 1.5;
+    }
+
+    .note a { color: #6c63ff; }
+
+    @media (max-width: 480px) {
+      .btn-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <!-- micro:bit-inspired icon -->
+      <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="48" height="48" rx="12" fill="#6c63ff"/>
+        <rect x="8" y="18" width="32" height="12" rx="4" fill="#fff" opacity="0.15"/>
+        <circle cx="16" cy="24" r="4" fill="#fff"/>
+        <circle cx="32" cy="24" r="4" fill="#fff"/>
+        <rect x="12" y="30" width="4" height="8" rx="1" fill="#fff" opacity="0.7"/>
+        <rect x="20" y="30" width="4" height="8" rx="1" fill="#fff" opacity="0.7"/>
+        <rect x="28" y="30" width="4" height="8" rx="1" fill="#fff" opacity="0.7"/>
+        <rect x="12" y="10" width="4" height="8" rx="1" fill="#fff" opacity="0.7"/>
+        <rect x="20" y="10" width="4" height="8" rx="1" fill="#fff" opacity="0.7"/>
+        <rect x="28" y="10" width="4" height="8" rx="1" fill="#fff" opacity="0.7"/>
+      </svg>
+      <h1>micro:bit Uploader</h1>
+    </div>
+
+    <p class="subtitle">
+      Select a <strong>.hex</strong> file, connect your micro:bit via USB, and click
+      <em>Upload</em> to flash it directly from your browser using WebUSB.
+    </p>
+
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="hexFile" accept=".hex" aria-label="Select hex file" />
+      <div class="drop-zone-icon">📂</div>
+      <div class="drop-zone-label">
+        Drag &amp; drop a <strong>.hex</strong> file here, or <span>browse</span>
+      </div>
+      <div class="file-name" id="fileName"></div>
+    </div>
+
+    <div class="btn-row">
+      <button id="connectBtn">🔌 Connect micro:bit</button>
+      <button id="uploadBtn" disabled>⬆️ Upload</button>
+    </div>
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="status" id="status" role="status" aria-live="polite">
+      Ready — connect a micro:bit and select a .hex file to get started.
+    </div>
+
+    <p class="note">
+      ⚠️ WebUSB is supported in Chrome and Edge on desktop.
+      Your micro:bit must be connected via USB and running its standard
+      <a href="https://microbit.org/get-started/user-guide/firmware/" target="_blank" rel="noopener">DAPLink firmware</a>.
+    </p>
+  </div>
+
+  <!-- DAPjs — JavaScript DAPLink library for WebUSB -->
+  <script src="https://unpkg.com/dapjs@2.1.1/umd/dapjs.js"></script>
+  <script>
+    'use strict';
+
+    const connectBtn  = document.getElementById('connectBtn');
+    const uploadBtn   = document.getElementById('uploadBtn');
+    const hexFile     = document.getElementById('hexFile');
+    const fileNameEl  = document.getElementById('fileName');
+    const statusEl    = document.getElementById('status');
+    const progressWrap = document.getElementById('progressWrap');
+    const progressBar = document.getElementById('progressBar');
+    const dropZone    = document.getElementById('dropZone');
+
+    let daplink = null;
+    let selectedFile = null;
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+    function setStatus(msg, type = '') {
+      statusEl.textContent = msg;
+      statusEl.className = 'status ' + type;
+    }
+
+    function setProgress(pct) {
+      progressBar.style.width = Math.min(100, Math.round(pct)) + '%';
+    }
+
+    function showProgress(visible) {
+      progressWrap.style.display = visible ? 'block' : 'none';
+    }
+
+    function updateUploadBtn() {
+      uploadBtn.disabled = !(daplink && selectedFile);
+    }
+
+    // ── File selection ─────────────────────────────────────────────────────
+    function handleFile(file) {
+      if (!file) return;
+      if (!file.name.toLowerCase().endsWith('.hex')) {
+        setStatus('Please choose a valid .hex file.', 'warning');
+        return;
+      }
+      selectedFile = file;
+      fileNameEl.textContent = '📄 ' + file.name;
+      setStatus('File selected: ' + file.name, 'info');
+      updateUploadBtn();
+    }
+
+    hexFile.addEventListener('change', () => handleFile(hexFile.files[0]));
+
+    // Drag-and-drop
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      handleFile(e.dataTransfer.files[0]);
+    });
+
+    // ── Connect ────────────────────────────────────────────────────────────
+    connectBtn.addEventListener('click', async () => {
+      if (!navigator.usb) {
+        setStatus('WebUSB is not supported in this browser. Please use Chrome or Edge.', 'error');
+        return;
+      }
+
+      setStatus('Waiting for USB device selection…', 'info');
+      connectBtn.disabled = true;
+
+      try {
+        const device = await navigator.usb.requestDevice({
+          filters: [{ vendorId: 0x0D28 }] // BBC micro:bit vendor ID
+        });
+
+        const transport = new DAPjs.WebUSB(device);
+        daplink = new DAPjs.DAPLink(transport);
+
+        await daplink.connect();
+
+        setStatus('✅ Connected to ' + (device.productName || 'micro:bit') + '!', 'success');
+        connectBtn.textContent = '🔄 Reconnect';
+        updateUploadBtn();
+      } catch (err) {
+        if (err.name === 'NotFoundError') {
+          setStatus('No device selected. Please try again.', 'warning');
+        } else {
+          setStatus('Connection failed: ' + err.message, 'error');
+        }
+        daplink = null;
+        updateUploadBtn();
+      } finally {
+        connectBtn.disabled = false;
+      }
+    });
+
+    // ── Upload ─────────────────────────────────────────────────────────────
+    uploadBtn.addEventListener('click', async () => {
+      if (!daplink || !selectedFile) return;
+
+      uploadBtn.disabled = true;
+      connectBtn.disabled = true;
+      showProgress(true);
+      setProgress(0);
+      setStatus('Reading file…', 'info');
+
+      try {
+        const buffer = await selectedFile.arrayBuffer();
+
+        // Listen for flashing progress events
+        daplink.on(DAPjs.DAPLink.EVENT_PROGRESS, (progress) => {
+          setProgress(progress * 100);
+          setStatus('Flashing… ' + Math.round(progress * 100) + '%', 'info');
+        });
+
+        setStatus('Flashing — do not unplug the micro:bit…', 'info');
+        await daplink.flash(buffer);
+
+        setProgress(100);
+        setStatus('✅ Upload complete! The micro:bit is running your program.', 'success');
+      } catch (err) {
+        setStatus('Upload failed: ' + err.message, 'error');
+        showProgress(false);
+      } finally {
+        uploadBtn.disabled = false;
+        connectBtn.disabled = false;
+        // Remove progress listener to avoid duplicates on next flash
+        daplink.removeAllListeners(DAPjs.DAPLink.EVENT_PROGRESS);
+      }
+    });
+  </script>
+</body>
+</html>
