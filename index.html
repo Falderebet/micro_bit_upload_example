@@ -115,21 +115,6 @@
       line-height: 1.4;
     }
 
-    .program-card-code {
-      font-family: 'Courier New', Consolas, monospace;
-      font-size: 0.8rem;
-      background: #edf2f7;
-      border-radius: 6px;
-      padding: 0.5rem 0.75rem;
-      color: #2d3748;
-      white-space: pre;
-      overflow-x: auto;
-    }
-
-    .program-card.selected .program-card-code {
-      background: #ebe8ff;
-    }
-
     .btn-row {
       display: flex;
       gap: 1rem;
@@ -265,13 +250,14 @@
     'use strict';
 
     // ── Program library ────────────────────────────────────────────────────
-    // Add more program objects here to expand the catalogue.
+    // Add entries here for each pre-built .hex file in the programs/ folder.
+    // Compile programs at https://makecode.microbit.org, then Download the .hex.
     const PROGRAMS = [
       {
         id: 'rng-light',
         name: 'Random LED Blink',
         description: 'Randomly toggles LEDs on the 5×5 display forever.',
-        code: `basic.forever(() => {\n    led.toggle(randint(0, 4), randint(0, 4))\n})`
+        hexUrl: 'programs/microbit-rng.hex'
       }
     ];
 
@@ -317,8 +303,7 @@
             '<span class="program-card-name">' + prog.name + '</span>' +
             '<span class="program-card-check" aria-hidden="true">✓</span>' +
           '</div>' +
-          '<div class="program-card-desc">' + prog.description + '</div>' +
-          '<pre class="program-card-code">' + prog.code + '</pre>';
+          '<div class="program-card-desc">' + prog.description + '</div>';
         card.addEventListener('click', () => selectProgram(prog.id));
         programGrid.appendChild(card);
       });
@@ -337,29 +322,11 @@
 
     buildProgramGrid();
 
-    // ── Compile via MakeCode REST API ──────────────────────────────────────
-    async function compileToHex(tsCode) {
-      const res = await fetch('https://makecode.microbit.org/api/compile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          target: 'microbit',
-          src: { 'main.ts': tsCode }
-        })
-      });
-      if (!res.ok) throw new Error('Compile request failed (' + res.status + ')');
-      const data = await res.json();
-
-      // The API returns either a hexurl to download, or the hex inline in outfiles.
-      if (data.hexurl) {
-        const hexRes = await fetch(data.hexurl);
-        if (!hexRes.ok) throw new Error('Could not download compiled hex');
-        return hexRes.arrayBuffer();
-      }
-      if (data.outfiles && data.outfiles['binary.hex']) {
-        return new TextEncoder().encode(data.outfiles['binary.hex']).buffer;
-      }
-      throw new Error('Unexpected response from MakeCode compiler');
+    // ── Load pre-built hex file ─────────────────────────────────────────────
+    async function loadHex(hexUrl) {
+      const res = await fetch(hexUrl);
+      if (!res.ok) throw new Error('Could not load hex file (' + res.status + '): ' + hexUrl);
+      return res.arrayBuffer();
     }
 
     // ── Connect ────────────────────────────────────────────────────────────
@@ -408,8 +375,8 @@
       setProgress(0);
 
       try {
-        setStatus('Compiling program…', 'info');
-        const buffer = await compileToHex(selectedProgram.code);
+        setStatus('Loading program…', 'info');
+        const buffer = await loadHex(selectedProgram.hexUrl);
 
         daplink.on(DAPjs.DAPLink.EVENT_PROGRESS, (progress) => {
           setProgress(progress * 100);
